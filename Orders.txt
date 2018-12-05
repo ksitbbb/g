@@ -1,0 +1,181 @@
+Q2
+Consider the following schema for Order Database:
+SALESMAN(Salesman_id, Name, City, Commission)
+CUSTOMER(Customer_id, Cust_Name, City, Grade, Salesman_id)
+ORDERS(Ord_No, Purchase_Amt, Ord_Date, Customer_id, Salesman_id)
+
+
+mysql> create table salesman(salesman_id integer(5) primary key, name varchar(30),city varchar(30),commission float(10));
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> create table customer(customer_id integer(5) primary key,customer_name varchar(30),city varchar(30),grade integer(10),
+    -> salesman_id integer(10) , foreign key(salesman_id) references salesman(salesman_id) on delete cascade on update cascade);
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> create table orders(order_no integer(5) primary key, purchase_amt float(10), ord_date date, customer_id integer(5) , foreign key (customer_id) references  customer(customer_id) on delete cascade on update cascade, salesman_id integer(5) , foreign key(salesman_id)  references salesman(salesman_id) on delete cascade on update cascade);
+Query OK, 0 rows affected (0.01 sec)
+
+
+
+mysql> insert into salesman values(100,'Rimando', 'Bangalore',1.2),
+    -> (101,'Alex','Pune',3.2),
+    -> (102,'Adam','Mumbai',1.4),
+    -> (103,'Dickens','Bangalore',2.4),
+    -> (104,'Samuel','Bangalore',3.2),
+    -> (105,'Charles','Pune',3.8),
+    -> (106,'Paul','Delhi',5.2),
+    -> (107,'Ron','Chennai',6.3);
+Query OK, 8 rows affected (0.00 sec)
+Records: 8  Duplicates: 0  Warnings: 0
+
+mysql> select * from salesman;
++-------------+---------+-----------+------------+
+| salesman_id | name    | city      | commission |
++-------------+---------+-----------+------------+
+|         100 | Rimando | Bangalore |        1.2 |
+|         101 | Alex    | Pune      |        3.2 |
+|         102 | Adam    | Mumbai    |        1.4 |
+|         103 | Dickens | Bangalore |        2.4 |
+|         104 | Samuel  | Bangalore |        3.2 |
+|         105 | Charles | Pune      |        3.8 |
+|         106 | Paul    | Delhi     |        5.2 |
+|         107 | Ron     | Chennai   |        6.3 |
++-------------+---------+-----------+------------+
+8 rows in set (0.00 sec)
+
+
+mysql> insert into customer values(1,'Lyon','Bangalore',5,100),
+    -> (2,'Hoog','Pune',10,105),
+    -> (3,'John','Pune',20,106),
+    -> (4,'Sam','Delhi',10,107),
+    -> (5,'Jack','Mumbai',15,102),
+    -> (6,'Amy','Chennai',12,101);
+
+mysql> insert into customer values(7,'Nicks','Bangalore',17,102);
+
+mysql> update customer set salesman_id=101 where customer_id=7;
+
+mysql> select * from customer;
++-------------+---------------+-----------+-------+-------------+
+| customer_id | customer_name | city      | grade | salesman_id |
++-------------+---------------+-----------+-------+-------------+
+|           1 | Lyon          | Bangalore |     5 |         100 |
+|           2 | Hoog          | Pune      |    10 |         105 |
+|           3 | John          | Pune      |    20 |         106 |
+|           4 | Sam           | Delhi     |    10 |         107 |
+|           5 | Jack          | Mumbai    |    15 |         102 |
+|           6 | Amy           | Chennai   |    12 |         101 |
+|           7 | Nicks         | Bangalore |    17 |         101 |
++-------------+---------------+-----------+-------+-------------+
+7 rows in set (0.00 sec)
+
+mysql> insert into orders values (1000,270.50,'2017-05-12',1,101), (1001,300,'2017-03-11',2,107), (1002,500,'2017-03-11',5,102), (1003,350.25,'2017-06-8',6,102), (1004,400,'2017-04-25',2,100), (1005,187.34,'2017-07-26',3,105);
+Query OK, 6 rows affected (0.00 sec)
+Records: 6  Duplicates: 0  Warnings: 0
+
+mysql> 
+mysql> select * from orders;
++----------+--------------+------------+-------------+-------------+
+| order_no | purchase_amt | ord_date   | customer_id | salesman_id |
++----------+--------------+------------+-------------+-------------+
+|     1000 |        270.5 | 2017-05-12 |           1 |         101 |
+|     1001 |          300 | 2017-03-11 |           2 |         107 |
+|     1002 |          500 | 2017-03-11 |           5 |         102 |
+|     1003 |       350.25 | 2017-06-08 |           6 |         102 |
+|     1004 |          400 | 2017-04-25 |           2 |         100 |
+|     1005 |       187.34 | 2017-07-26 |           3 |         105 |
++----------+--------------+------------+-------------+-------------+
+6 rows in set (0.00 sec)
+
+Q 2.1. Count the customers with grades above Bangalore’s average.
+
+
+mysql> select count(customer_id) from customer where grade > (select avg(grade) from customer where city='Bangalore'); 
++--------------------+
+| count(customer_id) |
++--------------------+
+|                  4 |
++--------------------+
+1 row in set (0.00 sec)
+
+
+
+Q2.2. Find the name and numbers of all salesman who had more than one customer.
+
+
+
+
+
+mysql> select salesman_id,name from salesman where salesman_id in (select s.salesman_id from customer c, salesman s where  s.salesman_id=c.salesman_id group by c.salesman_id having count(c.salesman_id)>1);
++-------------+------+
+| salesman_id | name |
++-------------+------+
+|         101 | Alex |
++-------------+------+
+1 row in set (0.00 sec)
+
+
+Q2.3. List all the salesman and indicate those who have and don’t have customers in their cities (Use UNION operation.)
+
+mysql> (select distinct s.salesman_id, 'same city' from salesman s, customer c where s.salesman_id=c.salesman_id and s.city=c.city) union (select distinct s.salesman_id, 'diff city' from salesman s, customer c where s.salesman_id=c.salesman_id and s.city!=c.city) union (select distinct s.salesman_id, 'no customer' from salesman s, customer c where s.salesman_id not in (select c.salesman_id from customer c));
++-------------+-------------+
+| salesman_id | same city   |
++-------------+-------------+
+|         100 | same city   |
+|         105 | same city   |
+|         102 | same city   |
+|         106 | diff city   |
+|         107 | diff city   |
+|         101 | diff city   |
+|         103 | no customer |
+|         104 | no customer |
++-------------+-------------+
+8 rows in set (0.00 sec)
+
+Q2.4. Create a view that finds the salesman who has the customer with the highest
+order of a day.
+
+mysql> create view highest_order as select o.ord_date,o.salesman_id,s.name from orders o,salesman s where o.purchase_amt=(select max(purchase_amt) from orders  where o.salesman_id=s.salesman_id);
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> 
+mysql> select * from highest_order;
++------------+-------------+------+
+| ord_date   | salesman_id | name |
++------------+-------------+------+
+| 2017-03-11 |         102 | Adam |
++------------+-------------+------+
+1 row in set (0.00 sec)
+
+5. Demonstrate the DELETE operation by removing salesman with id 1000. All
+his orders must also be deleted.
+
+mysql> delete from salesman where salesman_id=101;
+Query OK, 1 row affected (0.02 sec)
+
+
+mysql> select * from salesman;
++-------------+---------+-----------+------------+
+| salesman_id | name    | city      | commission |
++-------------+---------+-----------+------------+
+|         102 | Adam    | Mumbai    |        1.4 |
+|         103 | Dickens | Bangalore |        2.4 |
+|         104 | Samuel  | Bangalore |        3.2 |
+|         105 | Charles | Pune      |        3.8 |
+|         106 | Paul    | Delhi     |        5.2 |
+|         107 | Ron     | Chennai   |        6.3 |
++-------------+---------+-----------+------------+
+6 rows in set (0.00 sec)
+
+mysql> select * from orders;
++----------+--------------+------------+-------------+-------------+
+| order_no | purchase_amt | ord_date   | customer_id | salesman_id |
++----------+--------------+------------+-------------+-------------+
+|     1001 |          800 | 2017-03-11 |           4 |         107 |
+|     1002 |          500 | 2017-03-11 |           5 |         102 |
+|     1003 |       350.25 | 2017-06-08 |           5 |         102 |
+|     1005 |       187.34 | 2017-07-26 |           2 |         105 |
+|     1006 |          200 | 2017-06-08 |           3 |         102 |
++----------+--------------+------------+-------------+-------------+
+5 rows in set (0.00 sec)
+
